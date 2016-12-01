@@ -40,15 +40,31 @@ void prnt() {
   digitalWrite(13, !digitalRead(saveSwitch));
 }
 */
+//Count duration of key press
+long cnt() {
+  long srt = millis(); //Declare reference time
+  while(digitalRead(saveSwitch)) //Check whether switch is down
+    delay(25);
+
+  return (millis() - srt);
+}
+
 
 void measure() {
   if(millis()-last < 1000)
     return;
-  
-  long curr = millis(); //Reference time
-  
-  while(digitalRead(saveSwitch))
-    delay(25);
+  long curr = millis();
+
+  while(millis() - curr < 20) {
+    while(digitalRead(saveSwitch)) //Check whether switch is down
+      delay(25);
+
+    if(millis() - curr < 20)  {
+      if(!digitalRead(saveSwitch))
+        return;
+      curr = millis();
+    }
+  }
     
   //Decide whether a long or short press was made
   if(millis()-curr > 750)
