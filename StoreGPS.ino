@@ -2,56 +2,28 @@
 
 //Define Global constants and variables
 #define saveSwitch 3
-float b = 123.4567;
-long last;
+#define LEDPin 13
+float lat = 123.4567, lng = 765.4321; //Example float value --> to be replaced
+long last, count = 0; //
 
 void setup() {
   int i;
-  unsigned char* pt = (unsigned char*) &b;
   Serial.begin(9600);
-  pinMode(13, OUTPUT);
-  
-  //for(i=0;i<4;i++)
-  //  EEPROM.write(i, pt[i]);
-  
+  pinMode(LEDPin, OUTPUT); //Assign pin mode for LED
+
+  //Initialize button using interupt pin
   pinMode(saveSwitch, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(saveSwitch), prnt, RISING);
+  attachInterrupt(digitalPinToInterrupt(saveSwitch), measure, RISING);
 }
 
 void loop() {
-  int i;
-  float a = 123.4567;
-  unsigned char* pt;
-  unsigned char* gt;
 
   delay(4000);
-
-  //pt = (unsigned char*) &a;
-  //gt = (unsigned char*) &b;
-
-  //for(i=0;i<4;i++)
-  //  EEPROM.write(i, pt[i]);
-
-  
-  
-  //Serial.println(b, 4);
-
-  /*
-  digitalWrite(13, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(1000);              // wait for a second
-  digitalWrite(13, LOW);    // turn the LED off by making the voltage LOW
-  delay(1000);  
-  */
-  /*
-  for(i=0;i<a;i++) {
-    digitalWrite(13, HIGH);   // turn the LED on (HIGH is the voltage level)
-    delay(1000);              // wait for a second
-    digitalWrite(13, LOW);    // turn the LED off by making the voltage LOW
-    delay(1000);    
-  } */
-
 }
 
+
+
+/*
 void prnt() {
   float str;
   unsigned char* gt = (unsigned char*) &str;
@@ -67,8 +39,65 @@ void prnt() {
   }
   digitalWrite(13, !digitalRead(saveSwitch));
 }
+*/
 
-void count() {
+void measure() {
+  if(millis()-last < 1000)
+    return;
   
+  long curr = millis(); //Reference time
+  
+  while(digitalRead(saveSwitch))
+    delay(25);
+    
+  //Decide whether a long or short press was made
+  if(millis()-curr > 750)
+    longpress();
+  else {
+    Serial.println("Saving data");
+    saveData();
+    last = millis();
+  }
+
+}
+
+//Flash the current number of saved data points
+void longpress()  {
+  int i;
+  for(i=0;i<count;i++)  {
+    digitalWrite(LEDPin, HIGH);
+    delay(1000);
+    digitalWrite(LEDPin, LOW);
+    delay(1000);
+  }
+  Serial.print("Itterations: ");
+  Serial.println(count);
+}
+
+//Save current GPS location to EEPROM
+void saveData() {
+  unsigned char* pt = (unsigned char*) &lng;
+  int i;
+  for(i=0;i<4;i++)
+    EEPROM.write(i + count*8, pt[i]);
+  Serial.println(lng, 4);
+  
+  pt = (unsigned char*) &lat;
+  for(i=0;i<4;i++)
+    EEPROM.write(i + count*8 + 4, pt[i]);
+  Serial.println(lat, 4);
+  
+  confirm();
+}
+
+//Confirmation flash to acknowledge save of location
+void confirm() { 
+  int i;
+  for(i=0;i<2;i++) {
+    digitalWrite(LEDPin, HIGH);
+    delay(250);
+    digitalWrite(LEDPin, LOW);
+    delay(400);
+  }
 }
 
