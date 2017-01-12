@@ -1,11 +1,13 @@
 #include <EEPROM.h>
 
-//Define Global constants and variables
+//Define Global constants and variables----------------------------------------
 #define saveSwitch 3
 #define LEDPin 13
 float lat = 123.4567, lng = 765.4321; //Example float value --> to be replaced
 long last, count = 0; //
+int prev, state = -(digitalRead(saveSwitch)-1);
 
+//Pin setup---------------------------------------------------------------------
 void setup() {
   int i;
   Serial.begin(9600);
@@ -13,99 +15,61 @@ void setup() {
 
   //Initialize button using interupt pin
   pinMode(saveSwitch, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(saveSwitch), measure, RISING);
 }
 
+//Main loop---------------------------------------------------------------------
 void loop() {
-
-  delay(4000);
-}
-
-
-
-/*
-void prnt() {
-  float str;
-  unsigned char* gt = (unsigned char*) &str;
-  int i;
+  long tme;
+  prev = state;
+  state = -(digitalRead(saveSwitch)-1);
   
-  for(i=0;i<4;i++)
-    gt[i] = EEPROM.read(i);
+  if(state != prev) {
+    if(state == 1) {
+      Serial.println("UP!");
+      tme = millis();
+      while(digitalRead(saveSwitch) == 0)
+        delay(40);
+      tme = millis() - tme;
+      Serial.print(tme);
+      Serial.println(" - Down.");
 
-  if(!digitalRead(saveSwitch) && millis()-last > 1000) {
-    Serial.println(millis(), 2);
-    Serial.println(str, 4);
-    last = millis();
-  }
-  digitalWrite(13, !digitalRead(saveSwitch));
-}
-*/
-//Count duration of key press
-long cnt() {
-  long srt = millis(); //Declare reference time
-  while(digitalRead(saveSwitch)) //Check whether switch is down
-    delay(25);
-
-  return (millis() - srt);
-}
-
-
-void measure() {
-  if(millis()-last < 1000)
-    return;
-  long curr = millis();
-
-  while(millis() - curr < 20) {
-    while(digitalRead(saveSwitch)) //Check whether switch is down
-      delay(25);
-
-    if(millis() - curr < 20)  {
-      if(!digitalRead(saveSwitch))
-        return;
-      curr = millis();
+      if(tme > 5000) {
+        Serial.println("Cleared.");
+        clearmem();
+      }
+      if(tme > 2000) {
+        Serial.println("Long");
+        longpress();
+      }
+      else {
+        Serial.println("Short");
+        saveData();
+      }
     }
   }
-    
-  //Decide whether a long or short press was made
-  if(millis()-curr > 750)
-    longpress();
-  else {
-    Serial.println("Saving data");
-    saveData();
-    last = millis();
-  }
 
+  delay(50);
 }
 
+//Long press action--------------------------------------------------------------
 //Flash the current number of saved data points
 void longpress()  {
-  int i;
+  int i, count; //Declare counter and read number of data entries
+  delay(250); //Allow time to look at LED after button press
+  count = EEPROM.read(1);
+  
   for(i=0;i<count;i++)  {
     digitalWrite(LEDPin, HIGH);
     delay(1000);
     digitalWrite(LEDPin, LOW);
     delay(1000);
   }
+  
   Serial.print("Itterations: ");
   Serial.println(count);
 }
 
-//Save current GPS location to EEPROM
-void saveData() {
-  unsigned char* pt = (unsigned char*) &lng;
-  int i;
-  for(i=0;i<4;i++)
-    EEPROM.write(i + count*8, pt[i]);
-  Serial.println(lng, 4);
-  
-  pt = (unsigned char*) &lat;
-  for(i=0;i<4;i++)
-    EEPROM.write(i + count*8 + 4, pt[i]);
-  Serial.println(lat, 4);
-  
-  confirm();
-}
-
+//Confirm record-----------------------------------------------------------------
 //Confirmation flash to acknowledge save of location
 void confirm() { 
   int i;
@@ -115,5 +79,34 @@ void confirm() {
     digitalWrite(LEDPin, LOW);
     delay(400);
   }
+}
+
+//Save GPS Function--------------------------------------------------------------
+//Save current GPS location to EEPROM
+void saveData() {
+  unsigned char* pt = (unsigned char*) &lng;
+  int i, len;
+  len = EEPROM.read(1);
+  
+  for(i=0;i<4;i++)
+    EEPROM.write(i + len*4 + 2, pt[i]);
+  Serial.println(lng, 4);
+  
+  pt = (unsigned char*) &lat;
+  for(i=0;i<4;i++)
+    EEPROM.write(i + len*4 + 6, pt[i]);
+  Serial.println(lat, 4);
+  
+  EEPROM.write(1, len + 1);
+  
+  confirm();
+}
+
+//Clear current datapoints-------------------------------------------------------
+void clearmem() {
+  EEPROM.write(1, 0);
+  digitalWrite(LEDPin, HIGH);
+  delay(5000);
+  digitalWrite(LEDPin, LOW);
 }
 
