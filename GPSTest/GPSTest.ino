@@ -131,18 +131,18 @@ void saveData() {
   updateloc();
   unsigned char* pt = (unsigned char*) &lng;
   int i, len;
-  len = EEPROM.read(1);
+  len = EEPROM.read(0);
   
   for(i=0;i<4;i++)
-    EEPROM.write(i + len*4 + 2, pt[i]);
-  Serial.println(lng, 4);
+    EEPROM.write(i + len*8 + 2, pt[i]);
+  //Serial.println(lng, 4);
   
   pt = (unsigned char*) &lat;
   for(i=0;i<4;i++)
-    EEPROM.write(i + len*4 + 6, pt[i]);
-  Serial.println(lat, 4);
+    EEPROM.write(i + len*8 + 6, pt[i]);
+  //Serial.println(lat, 4);
   
-  EEPROM.write(1, len + 1);
+  EEPROM.write(0, len + 1);
   
   confirm();
 }
