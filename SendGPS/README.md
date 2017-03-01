@@ -1,0 +1,1 @@
+Modified version of saveGPS for use with the Due board to send the coordinates instead of saving them.
