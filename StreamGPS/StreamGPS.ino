@@ -1,4 +1,3 @@
-//#include <EEPROM.h>
 #include "Adafruit_GPS.h"
 #include<SoftwareSerial.h>
 
@@ -35,8 +34,6 @@ int prev, state = -(digitalRead(saveSwitch)-1);
 //Setup code--------------------------------------------------------------------
 void setup() {
   Serial.begin(9600);
-  pinMode(LEDPin, OUTPUT); //Assign pin mode for LED
-  pinMode(saveSwitch, INPUT_PULLUP); //Set pin mode for button 
 
   delay(4000); //Delay to allow GPS to start
   setupGPS(); //GPS setup commands (configures GPS)
@@ -45,32 +42,20 @@ void setup() {
 //Main loop---------------------------------------------------------------------
 void loop() {
   getGPSLocation();
+  //printToSerial();
   
+  delay(50);
+}
+
+void printToSerial() {
   Serial.print("Fix quality: ");
   Serial.print(GPS.fixquality);
   Serial.print(" Satellites: ");
   Serial.print(GPS.satellites);
   Serial.print(" HDOP: ");
-  Serial.println(GPS.HDOP);
-  
-  //Serial.println(GPS.longitude);
-  
-  delay(50);
-}
-
-//Update GPS location------------------------------------------------------------
-void updateloc() {
-  //getGPSLocation();
-  lng = GPS.longitude;
-  lat = GPS.latitude;
-  Serial.println("Current location");
-  Serial.print("(Long, Lat) = (");
-  Serial.print(lng);
-  Serial.print(", ");
-  Serial.print(lat);
-  Serial.println(")");
-  Serial.print("GPS.time = ");
-  Serial.println(GPS.milliseconds);
+  Serial.print(GPS.HDOP);
+  Serial.print(" Speed: ");
+  Serial.println(GPS.speed);
 }
 
 //Initialize GPS (From Communicator.h in team code)-------------------------------
@@ -82,7 +67,7 @@ void setupGPS()  {
   newSerial.begin(GPS_BAUD);
 
   // Commands to configure GPS:
-  newSerial.println(PMTK_SET_NMEA_OUTPUT_RMCGGA);     // Set to only output GPRMC (has all the info we need),
+  newSerial.println(PMTK_SET_NMEA_OUTPUT_GSVGGA);     // Set to only output GPRMC (has all the info we need),
   newSerial.println(SET_NMEA_UPDATE_RATE_5HZ);     // Increase rate strings sent over serial
   newSerial.println(PMTK_API_SET_FIX_CTL_5HZ);     // Increase rate GPS 'connects' and syncs with satellites
   newSerial.println(ENABLE_SBAB_SATELLITES);       // Enable using a more accurate type of satellite
@@ -102,14 +87,13 @@ void setupGPS()  {
 
 }
 
+//Parse new GPS data when availible -----------------------------------------------
 void getGPSLocation() {
-  //DEBUG_PRINT("Bytes available: ");
-  //DEBUG_PRINTLN(newSerial.read());
   while (newSerial.available()) {
 
     nmeaBuf[nmeaBufInd] = newSerial.read();
     
-    //DEBUG_PRINT(nmeaBuf[nmeaBufInd]);
+    DEBUG_PRINT(nmeaBuf[nmeaBufInd]);
     
     if (nmeaBuf[nmeaBufInd++] == '\n') { // Increment index after checking if current character signifies the end of a string
       nmeaBuf[nmeaBufInd - 1] = '\0'; // Add null terminating character (note: -1 is because nmeaBufInd is incremented in if statement)
@@ -119,9 +103,8 @@ void getGPSLocation() {
 
     if (nmeaBufInd >= MAXLINELENGTH) { // Should never happen. Means a corrupted packed and the newline was missed. Good to have just in case
       nmeaBufInd = 0;  // Note the next packet will then have been corrupted as well. Can't really recover until the next-next packet
-      //DEBUG_PRINTLN("");
+      DEBUG_PRINTLN("");
     }
-    //DEBUG_PRINTLN("");
     
   }
 }
