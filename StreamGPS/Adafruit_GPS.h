@@ -45,6 +45,7 @@
 #define PMTK_API_SET_FIX_CTL_1HZ  "$PMTK300,1000,0,0,0,0*1C"
 #define PMTK_API_SET_FIX_CTL_5HZ  "$PMTK300,200,0,0,0,0*2F"
 // Can't fix position faster than 5 times a second!
+#define PMTK_SET_NMEA_UPDATE_0HZ "$PMTK220,10000*2F"
 
 
 #define PMTK_SET_BAUD_57600 "$PMTK251,57600*2C"

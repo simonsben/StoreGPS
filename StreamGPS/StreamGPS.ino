@@ -34,7 +34,7 @@ int prev, state = -(digitalRead(saveSwitch)-1);
 //Setup code--------------------------------------------------------------------
 void setup() {
   Serial.begin(9600);
-
+  Serial.println("Begin setup");
   delay(4000); //Delay to allow GPS to start
   setupGPS(); //GPS setup commands (configures GPS)
 }
@@ -65,14 +65,35 @@ void setupGPS()  {
   
   // Start the serial communication
   newSerial.begin(GPS_BAUD);
-
+  
   // Commands to configure GPS:
-  newSerial.println(PMTK_SET_NMEA_OUTPUT_GSVGGA);     // Set to only output GPRMC (has all the info we need),
-  newSerial.println(SET_NMEA_UPDATE_RATE_5HZ);     // Increase rate strings sent over serial
+  newSerial.println(PMTK_SET_NMEA_UPDATE_0HZ);
+  delay(500);
+  flushAndPrint();
+  
+  Serial.println("Begin setting GPS");
+  newSerial.println(PMTK_SET_NMEA_UPDATE_0HZ);
+  flushAndPrint();
+  
+  newSerial.println(PMTK_SET_NMEA_OUTPUT_RMCGGA);     // Set to only output GPRMC (has all the info we need),
+  flushAndPrint();
+  
+  //newSerial.println(SET_NMEA_UPDATE_RATE_5HZ);     // Increase rate strings sent over serial
+  //flushAndPrint();
+  
   newSerial.println(PMTK_API_SET_FIX_CTL_5HZ);     // Increase rate GPS 'connects' and syncs with satellites
+  flushAndPrint();
+  
   newSerial.println(ENABLE_SBAB_SATELLITES);       // Enable using a more accurate type of satellite
+  flushAndPrint();
+  
   newSerial.println(ENABLE_USING_WAAS_WITH_SBSB_SATS);   // Enable the above satellites in 'fix' mode (I think)
-  delay(3000);  //Not really sure if needed.
+  flushAndPrint();
+
+  newSerial.println(PMTK_SET_NMEA_UPDATE_5HZ);
+  flushAndPrint();
+  
+  //delay(3000);  //Not really sure if needed.
   
   // Flush the GPS input (still unsure if the GPS sends response to the above commands)
   int num = 0;
@@ -82,9 +103,20 @@ void setupGPS()  {
     DEBUG_PRINT("FLUSH RESPONSE: ");
     DEBUG_PRINT(newSerial.read());
     DEBUG_PRINTLN("");
-  }
-  */
+  } */
+  
 
+}
+
+void flushAndPrint() {
+  delay(200);
+  char hold;
+  int numBytes = newSerial.available();
+  for(int i=0;i<numBytes;i++)  {
+    Serial.print((char)newSerial.read());
+  }
+  Serial.print("overflow: ");
+  Serial.println(newSerial.overflow());
 }
 
 //Parse new GPS data when availible -----------------------------------------------
